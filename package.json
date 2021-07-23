@@ -1,0 +1,17 @@
+{
+  "name": "minecraft-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "minecraft-data": "^2.88.0",
+    "mineflayer": "^3.8.0",
+    "mineflayer-pathfinder": "^1.6.3",
+    "prismarine-viewer": "^1.19.3"
+  }
+}

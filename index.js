@@ -23,14 +23,16 @@ bot.loadPlugin(pathfinder);
 
 console.log("bot is working and ready to serve");
 
-// bt find diamond_ore
-// bt come
-// bt goto x y z
+// example: bt find diamond_ore
 const messages = {
   LOADED: "loaded",
   FIND: "find",
   COME: "come",
-  GOTO: "goto",
+  GOTO: "go-to",
+  MOVE: "move",
+  LIST_ITEMS: "list-items",
+  DIG: "dig",
+  ATTACK: "attack",
 };
 
 bot.once("spawn", () => {
@@ -51,56 +53,55 @@ bot.once("spawn", () => {
 
     switch (command) {
       case messages.LOADED: {
-        console.log(bot.entity.position);
         await bot.waitForChunksToLoad();
         console.log("Ready!");
         break;
       }
 
       case messages.FIND: {
-        const blockName = words[2];
-        if (mcData.blocksByName[blockName] === undefined) {
-          console.log(`${blockName} is not a block name`);
-          return;
-        }
-        const ids = [mcData.blocksByName[blockName].id];
-
-        const blocks = bot.findBlocks({
-          matching: ids,
-          maxDistance: 90,
-          count: 10,
-        });
-
-        if (blocks.length === 0) {
-          console.log(`I couldn't find any ${blockName}. Expand your search`);
-          return;
-        }
-        console.log(
-          `I found ${blocks.length}. Search here: ${blocks[0].x}, ${blocks[0].y} ${blocks[0].z}`
-        );
+        findBlock(mcData, words);
         break;
       }
 
       case messages.COME: {
-        const target = bot.players[username]?.entity;
-        if (!target) {
-          console.log("I don't see you");
-          return;
-        }
-        const { x: playerX, y: playerY, z: playerZ } = target.position;
-
-        bot.pathfinder.setMovements(defaultMove);
-        bot.pathfinder.setGoal(
-          new GoalNear(playerX, playerY, playerZ, 1) // get within this radius of the player
-        );
+        goToPlayer(username, defaultMove);
         break;
       }
 
       case messages.GOTO: {
         bot.pathfinder.setMovements(defaultMove);
         bot.pathfinder.setGoal(
-          new GoalNear(words[2], words[3], words[4], 2) // // get within this radius of the coords
+          new GoalNear(words[2], words[3], words[4], 2) // get within 2 block radius of the coords
         );
+        break;
+      }
+
+      case messages.MOVE: {
+        moveBot(words[2]);
+        break;
+      }
+
+      case messages.LIST_ITEMS: {
+        const output = bot.inventory
+          .items()
+          .map((item) => (item ? `${item.name} x ${item.count}` : "(nothing)"))
+          .join(", ");
+        console.log(output);
+        break;
+      }
+
+      case messages.DIG: {
+        botDig(words);
+        break;
+      }
+
+      case messages.ATTACK: {
+        const entity = bot.nearestEntity();
+        if (entity) {
+          bot.attack(entity, true);
+        } else {
+          console.log("no nearby entities");
+        }
         break;
       }
 
@@ -109,3 +110,71 @@ bot.once("spawn", () => {
     }
   });
 });
+
+function findBlock(words, mcData) {
+  const blockName = words[2];
+  if (mcData.blocksByName[blockName] === undefined) {
+    console.log(`${blockName} is not a mc block name`);
+    return;
+  }
+  const ids = [mcData.blocksByName[blockName].id];
+
+  const blocks = bot.findBlocks({
+    matching: ids,
+    maxDistance: 90,
+    count: 10,
+  });
+
+  if (blocks.length === 0) {
+    console.log(`I couldn't find any ${blockName}. Expand your search`);
+    return;
+  }
+  console.log(
+    `I found ${blocks.length}. Search here: ${blocks[0].x}, ${blocks[0].y} ${blocks[0].z}`
+  );
+}
+
+function goToPlayer(username, defaultMove) {
+  const target = bot.players[username]?.entity;
+  if (!target) {
+    console.log("I don't see you");
+    return;
+  }
+  const { x: playerX, y: playerY, z: playerZ } = target.position;
+
+  bot.pathfinder.setMovements(defaultMove);
+  bot.pathfinder.setGoal(
+    new GoalNear(playerX, playerY, playerZ, 1) // get within this radius of the player
+  );
+}
+
+function moveBot(position) {
+  switch (position) {
+    case "forward":
+      bot.setControlState("forward", true);
+      break;
+    case "back":
+      bot.setControlState("back", true);
+      break;
+    case "left":
+      bot.setControlState("left", true);
+      break;
+    case "right":
+      bot.setControlState("right", true);
+      break;
+    case "sprint":
+      bot.setControlState("sprint", true);
+      break;
+    case "stop":
+      bot.clearControlStates();
+      break;
+    case "jump":
+      bot.setControlState("jump", true);
+      bot.setControlState("jump", false);
+      break;
+    default:
+      break;
+  }
+}
+
+function botDig() {}

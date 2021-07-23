@@ -1,3 +1,4 @@
+const { Vec3 } = require("vec3");
 const mineflayer = require("mineflayer");
 const {
   pathfinder,
@@ -33,6 +34,10 @@ const messages = {
   LIST_ITEMS: "list-items",
   DIG: "dig",
   ATTACK: "attack",
+  JUMP: "jump",
+  FISH: "fish",
+  STOP_FISH: "stop-fish",
+  FARM: "farm",
 };
 
 bot.once("spawn", () => {
@@ -81,6 +86,12 @@ bot.once("spawn", () => {
         break;
       }
 
+      case messages.JUMP: {
+        bot.setControlState("jump", true);
+        bot.setControlState("jump", false);
+        break;
+      }
+
       case messages.LIST_ITEMS: {
         const output = bot.inventory
           .items()
@@ -102,6 +113,21 @@ bot.once("spawn", () => {
         } else {
           console.log("no nearby entities");
         }
+        break;
+      }
+
+      case messages.FISH: {
+        goFish(mcData);
+        break;
+      }
+
+      case messages.STOP_FISH: {
+        bot.removeListener("playerCollect", onCollectFishItem);
+        break;
+      }
+
+      case messages.FARM: {
+        goFarm(mcData);
         break;
       }
 
@@ -168,13 +194,88 @@ function moveBot(position) {
     case "stop":
       bot.clearControlStates();
       break;
-    case "jump":
-      bot.setControlState("jump", true);
-      bot.setControlState("jump", false);
-      break;
     default:
+      console.warn("only supports forward, back, left, right, sprint, stop");
       break;
   }
 }
 
 function botDig() {}
+
+async function goFish(mcData) {
+  bot.chat("I'm going fishing'");
+  try {
+    await bot.equip(mcData.itemsByName.fishing_rod.id, "hand");
+  } catch (err) {
+    bot.chat("I couldn't fish. Perhaps I need a fishing rod");
+    return bot.chat(err.message);
+  }
+  bot.on("playerCollect", onCollectFishItem);
+
+  try {
+    await bot.fish();
+  } catch (err) {
+    bot.chat(err.message);
+  }
+}
+
+function onCollectFishItem(player, entity) {
+  if (entity.kind === "Drops" && player === bot.entity) {
+    bot.removeListener("playerCollect", onCollectFishItem);
+    goFish();
+  }
+}
+
+async function goFarm(mcData) {
+  function blockToSow() {
+    return bot.findBlock({
+      point: bot.entity.position,
+      matching: mcData.blocksByName.farmland.id,
+      maxDistance: 6,
+      useExtraInfo: (block) => {
+        const blockAbove = bot.blockAt(block.position.offset(0, 1, 0));
+        return !blockAbove || blockAbove.type === 0;
+      },
+    });
+  }
+
+  function blockToHarvest() {
+    return bot.findBlock({
+      point: bot.entity.position,
+      maxDistance: 6,
+      matching: (block) => {
+        return (
+          block &&
+          block.type === mcData.blocksByName.wheat.id &&
+          block.metadata === 7
+        );
+      },
+    });
+  }
+  try {
+    let action = true;
+    while (action) {
+      const toHarvest = blockToHarvest();
+      if (toHarvest) {
+        await bot.dig(toHarvest);
+      } else {
+        action = false;
+        break;
+      }
+    }
+    action = true;
+    while (action) {
+      const toSow = blockToSow();
+      if (toSow) {
+        await bot.equip(mcData.itemsByName.wheat_seeds.id, "hand");
+        await bot.placeBlock(toSow, new Vec3(0, 1, 0));
+      } else {
+        action = false;
+        break;
+      }
+    }
+  } catch (e) {
+    console.log(e);
+    bot.chat("oops, farming mistake");
+  }
+}

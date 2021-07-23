@@ -13,6 +13,7 @@
     "minecraft-data": "^2.88.0",
     "mineflayer": "^3.8.0",
     "mineflayer-pathfinder": "^1.6.3",
+    "mineflayer-pvp": "^1.0.2",
     "prismarine-viewer": "^1.19.3"
   },
   "devDependencies": {

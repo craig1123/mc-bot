@@ -10,9 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "minecraft-data": "^2.88.0",
-    "mineflayer": "^3.8.0",
-    "mineflayer-pathfinder": "^1.6.3",
+    "minecraft-data": "^2.93.0",
+    "mineflayer": "^3.11.0",
+    "mineflayer-pathfinder": "^1.7.0",
     "mineflayer-pvp": "^1.0.2",
     "prismarine-viewer": "^1.19.3"
   },
